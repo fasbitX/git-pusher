@@ -43,6 +43,29 @@ def initialize_repo():
             return False
     return False
 
+# Check if there are any commits in the repository
+def verify_and_create_commit():
+
+    result = subprocess.run("git log", shell=True, text=True, capture_output=True)
+
+    if result.returncode != 0:  # No commits in the repository
+        print("No commits found in the repository. Creating an initial commit.")
+
+        # Stage all files
+        if run_git_command("git add ."):
+            # Create an initial commit
+            if run_git_command('git commit -m "Initial commit"'):
+                print("Initial commit created successfully!")
+                return True
+            else:
+                print("Failed to create the initial commit.")
+        else:
+            print("Failed to stage files for the initial commit.")
+        return False
+    else:
+        print("Existing commits found in the repository.")
+        return True
+
 # Function to list files in the current directory
 def list_files():
     print("\nAvailable files:")
@@ -134,6 +157,11 @@ def main():
             # Ensure username and email are set
             check_git_identity()
 
+            # Proceed with commit verification
+            if not verify_and_create_commit():
+                continue
+
+
             # Proceed with file selection, staging, and commit
             username, token = get_git_credentials()
             if not username or not token:
@@ -171,9 +199,11 @@ def main():
 
             # Push changes
             if run_git_command(
-                f"git -c http.extraheader='Authorization: Basic {username}:{token}' push {repo_url} main"
+                f"git -c http.extraheader='Authorization: Basic {username}:{token}' push -u {repo_url} main"
             ):
                 print("Files pushed successfully!")
+            else:
+                print("Failed to push changes. Check your repository and branch setup.")
 
         elif choice == "3":
             repo_name = input("Enter the name of the new repository: ").strip()
