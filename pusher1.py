@@ -198,12 +198,16 @@ def main():
             repo_url = input("Enter the Git repository URL: ").strip()
 
             # Push changes
-            if run_git_command(
-                f"git -c http.extraheader='Authorization: Basic {username}:{token}' push -u {repo_url} main"
-            ):
-                print("Files pushed successfully!")
+            if run_git_command("git branch -M main"):  # Ensure the branch is named 'main'
+                if run_git_command(
+                    f"git -c http.extraheader='Authorization: Basic {username}:{token}' push -u {repo_url} main"
+                ):
+                    print("Files pushed successfully!")
+                else:
+                    print("Failed to push changes. Check your repository and branch setup.")
             else:
-                print("Failed to push changes. Check your repository and branch setup.")
+                print("Failed to set the branch to 'main'.")
+
 
         elif choice == "3":
             repo_name = input("Enter the name of the new repository: ").strip()
