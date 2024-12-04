@@ -19,7 +19,6 @@ def run_git_command(command):
         print("An error occurred:", str(e))
         return False
 
-
 # Function to store credentials securely
 def store_git_credentials():
     service_name = "git"
@@ -199,9 +198,104 @@ def update_repository():
     else:
         print("Failed to push changes to the repository.")
 
+# List repositories on the GitHub account
+def list_repositories():
+    username, token = get_git_credentials()
+    if not username or not token:
+        print("GitHub credentials not found. Please store them first.")
+        return
+
+    # GitHub API request to list repositories
+    url = f"{GITHUB_API_URL}/user/repos"
+    headers = {"Authorization": f"token {token}"}
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            repos = response.json()
+            if not repos:
+                print("No repositories found on this account.")
+            else:
+                print("\nRepositories on your GitHub account:")
+                for i, repo in enumerate(repos, start=1):
+                    print(f"{i}. {repo['name']} - {repo['html_url']}")
+        else:
+            print(f"Failed to fetch repositories: {response.status_code} {response.reason}")
+    except Exception as e:
+        print(f"An error occurred while fetching repositories: {str(e)}")
+
+# List files in a specified repository
+def list_files_in_repo():
+    username, token = get_git_credentials()
+    if not username or not token:
+        print("GitHub credentials not found. Please store them first.")
+        return
+
+    # Get repository name
+    repo_name = input("Enter the name of the repository to list files from: ").strip()
+    url = f"{GITHUB_API_URL}/repos/{username}/{repo_name}/contents/"
+    headers = {"Authorization": f"token {token}"}
+
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            contents = response.json()
+            files = [item for item in contents if item["type"] == "file"]
+
+            if not files:
+                print("No files found in the repository.")
+                return
+
+            print(f"\nFiles in repository '{repo_name}':")
+            for i, file in enumerate(files, start=1):
+                print(f"{i}. {file['name']}")
+
+            # Prompt for file selection or exit
+            while True:
+                choice = input("\nEnter the number of the file to download or 'e' to exit: ").strip().lower()
+                if choice == "e":
+                    print("Exiting file selection.")
+                    break
+                try:
+                    index = int(choice) - 1
+                    if 0 <= index < len(files):
+                        download_file(file=files[index], headers=headers)
+                    else:
+                        print("Invalid number. Please select a valid file number.")
+                except ValueError:
+                    print("Invalid input. Please enter a file number or 'e' to exit.")
+        else:
+            print(f"Failed to fetch repository contents: {response.status_code} {response.reason}")
+    except Exception as e:
+        print(f"An error occurred while fetching files: {str(e)}")
 
 
-## MAIN  ## 
+# Download a file from the repository
+def download_file(file, headers):
+    # Specify the download directory
+    download_dir = "./downloads"  # Change this to your desired path
+
+    # Ensure the directory exists
+    os.makedirs(download_dir, exist_ok=True)
+
+    file_url = file["download_url"]
+    file_name = os.path.join(download_dir, file["name"])
+    try:
+        print(f"Downloading {file['name']} to {download_dir}...")
+        response = requests.get(file_url, headers=headers)
+        if response.status_code == 200:
+            with open(file_name, "wb") as f:
+                f.write(response.content)
+            print(f"File '{file['name']}' downloaded successfully to '{download_dir}'!")
+        else:
+            print(f"Failed to download {file['name']}: {response.status_code} {response.reason}")
+    except Exception as e:
+        print(f"An error occurred while downloading {file['name']}: {str(e)}")
+
+
+
+
+
+## MAIN  ################################################################################### 
 def main():
     while True:
         print("\nOptions:")
@@ -210,7 +304,9 @@ def main():
         print("3. Create a new repository")
         print("4. Create a README.md file")
         print("5. Update repository with changes")
-        print("6. Exit")
+        print("6. List repositories on account")
+        print("7. List files in a repository")
+        print("8. Exit")
         choice = input("Enter your choice: ").strip()
 
         if choice == "1":
@@ -263,8 +359,16 @@ def main():
             update_repository()
 
         elif choice == "6":
+            list_repositories()
+
+        elif choice == "7":
+            list_files_in_repo()
+
+        elif choice == "8":
             print("Exiting...")
             break
+
+
 
         else:
             print("Invalid choice. Please try again.")
@@ -275,3 +379,4 @@ if __name__ == "__main__":
 
 #####################################################################################################
 #################################  Python by fasbit.com  ############################################
+########
